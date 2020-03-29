@@ -5,7 +5,7 @@ import subprocess
 import platform
 import sys
 
-ip, port = '127.0.0.1', '4001'
+ip, port = '127.0.0.1', 4001
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.connect((ip, port))
