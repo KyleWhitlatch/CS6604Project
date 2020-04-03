@@ -1,6 +1,7 @@
 
 import csv
 import matplotlib.pyplot as plt
+import numpy as np
 from itertools import count
 import statistics
 
@@ -47,9 +48,11 @@ def getMemVals(inputString):
 
 if __name__ == "__main__":
 
-    testReadNum = 1
+    testReadNum = input("Enter the test log to process:")
     filename = "piTestRecord" + str(testReadNum) + ".csv"
     fullFileName = "./rpidata/" + filename
+    processFileName = "piTestRecord"+ str(testReadNum) + "pl.csv"
+    fullProcessName = "./rpidata/" + processFileName
 
     ###########################
     # Change name for plotting here:
@@ -90,10 +93,75 @@ if __name__ == "__main__":
         axList[i].set_ylabel(ylabels[i])
         axList[i].set_title(titleArray[i])
 
-    # Read number of processes in process
+    # Read number of processes in process log and how often each process is run
+    processArray = []
+
+    with open(fullProcessName, newline='') as csvfile:
+        csv_reader = csv.reader(csvfile)
+        next(csv_reader) # skip header
+        for row in csv_reader:
+            processArray.append(row)
+
+    # Plot total number of processes for each sample on bar graph
+    xTotalList = []
+    yTotalList = []
+
+    for i in range(len(processArray)):
+        yTotalList.append(len(processArray[i]))
+        xTotalList.append(i+1)
+
+    totalFig = plt.figure()
+    totalAx = totalFig.add_subplot(111)
+    totalAx.bar(xTotalList, yTotalList)
+    totalAx.set_xlabel("Sample Number")
+    totalAx.set_ylabel("Total Number of Processes")
+    totalAx.set_title("Bar Graph of Total System Processes")
+    totalAx.set_ylim(min(yTotalList) - 10, max(yTotalList) + 10)
+
+    # Plot number of occurances of each system process
+    longProcessList = []
+    workingList = []
+    cleanedArray = []
+    for sublist in processArray:
+        workingList = []
+        for entry in sublist:
+            mysplit = entry.split(" ")
+            process = mysplit[1]
+            longProcessList.append(process)
+            workingList.append(process)
+        cleanedArray.append(workingList)
+
+
+    processSet = list(set(longProcessList))
+    occurSetList = [0] * len(processSet)
+
+    occurIdx = -1
+    for unique in processSet:
+        occurIdx += 1
+        for sublist in cleanedArray:
+            if unique in sublist:
+                occurSetList[occurIdx] += 1
+
+    trimmedOccurList = []
+    trimmedProcessList = []
+    for i in range(len(occurSetList)):
+        if (occurSetList[i] != len(processArray)):
+            trimmedOccurList.append(occurSetList[i])
+            trimmedProcessList.append(processSet[i])
+
+    # occurXPlot = [i for i in range(len(trimmedProcessList))]
+    occurXPlot = np.arange(len(trimmedProcessList))
+    width = 0.75
+    occurFig = plt.figure()
+    occurAx = occurFig.add_subplot(111)
+    occurAx.barh(occurXPlot, trimmedOccurList)
+    occurAx.set_yticks(occurXPlot)
+    occurAx.set_yticklabels(trimmedProcessList)
+    occurAx.set_ylabel("System Processes")
+    occurAx.set_xlabel("Occurances")
+    occurAx.set_title("Plot of System Occurances")
 
     plt.show()
-
 
     print("Done plotting data!")
 

@@ -55,12 +55,13 @@ def doMainRecordLoop(rpiData):
             rpiData.cpuLoad.append(str(psutil.cpu_percent(percpu=False)))
 
             # Get process log
+            pidsList = []
             pidsString = ""
             procs = {p.pid: p.info for p in psutil.process_iter(['pid','name'])}
             for i,j in procs.items():
-                pidsString = pidsString + "|" + str(j['pid']) + ":" + str(j['name']) + "|"
-
-            rpiData.processArray.append(pidsString)
+                pidsString = "(" + str(i) + ") " + str(j['name'])
+                pidsList.append(pidsString)
+            rpiData.processArray.append(pidsList)
 
             time.sleep(1)
             
@@ -86,8 +87,8 @@ def doMainRecordLoop(rpiData):
     with open(plname, 'w+', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(["PROCESS LOG:"])
-        for i, j in zip(rpiData.processArray, range(len(rpiData.processArray))):
-            writer.writerow(["SAMPLE#" + str(j) + ":", i])
+        for sublist in rpiData.processArray:
+            writer.writerow(sublist)
     
 
 if __name__ == "__main__":
