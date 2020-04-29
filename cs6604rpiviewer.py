@@ -1,10 +1,10 @@
-
+#! /usr/bin/env python3
 import csv
 import matplotlib.pyplot as plt
 import numpy as np
 from itertools import count
 import statistics
-
+import argparse
 class rpiReadData:
 
     def __init__(self, name):
@@ -47,8 +47,12 @@ def getMemVals(inputString):
 
 
 if __name__ == "__main__":
-
-    testReadNum = input("Enter the test log to process:")
+    
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--testNum",type=int,default=0,help="Test number to process data for...")
+    parser.add_argument("--plotTitle",type=str,default="Testing",help="Title to use for plotting...")
+    args = parser.parse_args()
+    testReadNum = args.testNum
     filename = "piTestRecord" + str(testReadNum) + ".csv"
     fullFileName = "./rpidata/" + filename
     processFileName = "piTestRecord"+ str(testReadNum) + "pl.csv"
@@ -56,7 +60,7 @@ if __name__ == "__main__":
 
     ###########################
     # Change name for plotting here:
-    name = "Testing"
+    name = args.plotTitle
     rpiRead = rpiReadData(name)
 
 

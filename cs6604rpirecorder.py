@@ -3,6 +3,7 @@ import csv
 import os,sys
 from itertools import count
 import time
+import argparse
 
 class rpiData:
 
@@ -37,7 +38,7 @@ def doMainRecordLoop(rpiData):
         while True:
             print("Running main recording loop!")
             # Record Sample Number
-            rpiData.sampleNum.append(next(rpi3Data.index))
+            rpiData.sampleNum.append(next(rpiData.index))
 
             # Get current availible memory string
             currMem = psutil.virtual_memory()
@@ -92,8 +93,12 @@ def doMainRecordLoop(rpiData):
     
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--testNum",type=int,default=0,help="Test number for recording...")
+    parser.add_argument("--testName", type=str,default="RaspPi3Data",help="Label for internal test data handling...")
+    args = parser.parse_args()
     print("Starting CS 6604 data recorder!")
     global testnum
-    testnum = input("Test Number:")
-    rpi3Data = rpiData("RaspPi3Data")
-    doMainRecordLoop(rpi3Data)
+    testnum = args.testNum
+    recordrpiData = rpiData(args.testName)
+    doMainRecordLoop(recordrpiData)
