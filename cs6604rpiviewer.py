@@ -50,19 +50,24 @@ if __name__ == "__main__":
     
     parser = argparse.ArgumentParser()
     parser.add_argument("--testNum",type=int,default=0,help="Test number to process data for...")
+    parser.add_argument("--compareNum", type=int,default=0,help="Test number to compare data against")
     parser.add_argument("--plotTitle",type=str,default="Testing",help="Title to use for plotting...")
+    parser.add_argument("--doTrim", type=bool, default=False,help="Trim sample plots to shortest.")
     args = parser.parse_args()
     testReadNum = args.testNum
+    testcompareNum = args.compareNum
     filename = "piTestRecord" + str(testReadNum) + ".csv"
     fullFileName = "./rpidata/" + filename
     processFileName = "piTestRecord"+ str(testReadNum) + "pl.csv"
     fullProcessName = "./rpidata/" + processFileName
+    compfilename = "piTestRecord" + str(testcompareNum) + ".csv"
+    compFile= "./rpidata/" + compfilename
 
     ###########################
-    # Change name for plotting here:
     name = args.plotTitle
     rpiRead = rpiReadData(name)
-
+    rpiCompare = rpiReadData(name)
+    doTrimming = args.doTrim
 
     # Read string data values to rpiReadData
     with open(fullFileName, newline='') as csvfile:
@@ -88,14 +93,84 @@ if __name__ == "__main__":
     figList = [0] * numFeatures
     axList = [0] * numFeatures
 
-    for i in range(len(plotArray)):
-        figList[i] = plt.figure()
-        axList[i] = figList[i].add_subplot(111)
-        workingArray = plotArray[i]
-        axList[i].plot(rpiRead.sampleNum, workingArray)
-        axList[i].set_xlabel("Time [s]")
-        axList[i].set_ylabel(ylabels[i])
-        axList[i].set_title(titleArray[i])
+    # Read comparison file
+    with open(compFile, newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            # print(row)
+            rpiCompare.sampleNum.append(row['SN'])
+            rpiCompare.cpuTemp.append(getCPUArrayVals(row['CPU Temp. [C]']))
+            rpiCompare.cpuLoad.append(getCPUArrayVals(row['CPU % Load']))
+
+            memArray = getMemVals(row['Virtual Memory [mB] (%)'])
+            rpiCompare.memPerc.append(memArray[0])
+            rpiCompare.availibleMem.append(memArray[1])
+            rpiCompare.totalMem.append(memArray[2])
+
+    compArray = [rpiCompare.cpuTemp, rpiCompare.cpuLoad, rpiCompare.availibleMem, rpiCompare.totalMem, rpiCompare.memPerc]
+
+
+
+    if not doTrimming:
+        plt.locator_params(axis='x', nbins=10)
+        fig, axs = plt.subplots(3,sharex=True)
+        fig.suptitle(name)
+        axs[0].plot(rpiRead.sampleNum, rpiRead.cpuTemp,'tab:blue')
+        axs[0].plot(rpiCompare.sampleNum, rpiCompare.cpuTemp,'tab:red')
+        axs[1].plot(rpiRead.sampleNum, rpiRead.cpuLoad, 'tab:blue')
+        axs[1].plot(rpiCompare.sampleNum, rpiCompare.cpuLoad, 'tab:red')
+        axs[2].plot(rpiRead.sampleNum, rpiRead.memPerc, 'tab:blue')
+        axs[2].plot(rpiCompare.sampleNum, rpiCompare.memPerc, 'tab:red')
+
+        for index,ax in enumerate(axs.flat):
+            if index == 2:
+                ax.set(xlabel='Sample', ylabel=ylabels[index])
+            else:
+                ax.set( ylabel=ylabels[index])
+
+        every_nth = 10
+        for ax in axs.flat:
+            for n, label in enumerate(ax.xaxis.get_ticklabels()):
+                if n % every_nth != 0:
+                    label.set_visible(False)
+    else:
+
+        # Find shortest samples for compare and read
+        minsamples = min(len(rpiRead.sampleNum),len(rpiCompare.sampleNum))
+        minsamples = minsamples - 1
+
+        plt.locator_params(axis='x', nbins=10)
+        fig, axs = plt.subplots(3, sharex=True)
+        fig.suptitle(name)
+        axs[0].plot(rpiRead.sampleNum[0:minsamples], rpiRead.cpuTemp[0:minsamples], 'tab:blue')
+        axs[0].plot(rpiCompare.sampleNum[0:minsamples], rpiCompare.cpuTemp[0:minsamples], 'tab:red')
+        axs[1].plot(rpiRead.sampleNum[0:minsamples], rpiRead.cpuLoad[0:minsamples], 'tab:blue')
+        axs[1].plot(rpiCompare.sampleNum[0:minsamples], rpiCompare.cpuLoad[0:minsamples], 'tab:red')
+        axs[2].plot(rpiRead.sampleNum[0:minsamples], rpiRead.memPerc[0:minsamples], 'tab:blue')
+        axs[2].plot(rpiCompare.sampleNum[0:minsamples], rpiCompare.memPerc[0:minsamples], 'tab:red')
+
+        for index, ax in enumerate(axs.flat):
+            if index == 2:
+                ax.set(xlabel='Sample', ylabel=ylabels[index])
+            else:
+                ax.set(ylabel=ylabels[index])
+
+        every_nth = 10
+        for ax in axs.flat:
+            for n, label in enumerate(ax.xaxis.get_ticklabels()):
+                if n % every_nth != 0:
+                    label.set_visible(False)
+
+    plt.savefig("./rpidata/AllResults"+str(testReadNum)+".png")
+
+    # for i in range(len(plotArray)):
+    #     figList[i] = plt.figure()
+    #     axList[i] = figList[i].add_subplot(111)
+    #     workingArray = plotArray[i]
+    #     axList[i].plot(rpiRead.sampleNum, workingArray)
+    #     axList[i].set_xlabel("Time [s]")
+    #     axList[i].set_ylabel(ylabels[i])
+    #     axList[i].set_title(titleArray[i])
 
     # Read number of processes in process log and how often each process is run
     processArray = []
@@ -121,6 +196,8 @@ if __name__ == "__main__":
     totalAx.set_ylabel("Total Number of Processes")
     totalAx.set_title("Bar Graph of Total System Processes")
     totalAx.set_ylim(min(yTotalList) - 10, max(yTotalList) + 10)
+
+    plt.savefig("./rpidata/totalProcesses" + str(testReadNum) + ".png")
 
     # Plot number of occurances of each system process
     longProcessList = []
@@ -165,7 +242,9 @@ if __name__ == "__main__":
     occurAx.set_xlabel("Occurances")
     occurAx.set_title("Plot of System Occurances")
 
-    plt.show()
+    plt.savefig("./rpidata/totalOccurances" + str(testReadNum) + ".png")
+
+    # plt.show()
 
     print("Done plotting data!")
 
