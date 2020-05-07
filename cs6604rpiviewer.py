@@ -53,6 +53,8 @@ if __name__ == "__main__":
     parser.add_argument("--compareNum", type=int,default=0,help="Test number to compare data against")
     parser.add_argument("--plotTitle",type=str,default="Testing",help="Title to use for plotting...")
     parser.add_argument("--doTrim", type=bool, default=False,help="Trim sample plots to shortest.")
+    parser.add_argument("--compareTrim",type=int,default=0,help="Number of samples to trim for compare data.")
+    parser.add_argument("--testTrim",type=int,default=0,help="Number of samples to trim for test data.")
     args = parser.parse_args()
     testReadNum = args.testNum
     testcompareNum = args.compareNum
@@ -62,6 +64,8 @@ if __name__ == "__main__":
     fullProcessName = "./rpidata/" + processFileName
     compfilename = "piTestRecord" + str(testcompareNum) + ".csv"
     compFile= "./rpidata/" + compfilename
+    compareTrim = args.compareTrim
+    testTrim = args.testTrim
 
     ###########################
     name = args.plotTitle
@@ -109,7 +113,17 @@ if __name__ == "__main__":
 
     compArray = [rpiCompare.cpuTemp, rpiCompare.cpuLoad, rpiCompare.availibleMem, rpiCompare.totalMem, rpiCompare.memPerc]
 
+    if testTrim != 0:
+        rpiRead.sampleNum.append(row['SN'])
+        rpiRead.cpuTemp = rpiRead.cpuTemp[testTrim:]
+        rpiRead.cpuLoad = rpiRead.cpuTemp[testTrim:]
+        rpiRead.memPerc = rpiRead.memPerc[testTrim:]
 
+    if compareTrim != 0:
+        rpiRead.sampleNum.append(row['SN'])
+        rpiRead.cpuTemp = rpiRead.cpuTemp[compareTrim:]
+        rpiRead.cpuLoad = rpiRead.cpuTemp[compareTrim:]
+        rpiRead.memPerc = rpiRead.memPerc[compareTrim:]
 
     if not doTrimming:
         plt.locator_params(axis='x', nbins=10)
