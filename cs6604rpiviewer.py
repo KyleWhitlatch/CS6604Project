@@ -45,7 +45,6 @@ def getMemVals(inputString):
     return floatArray
 
 
-
 if __name__ == "__main__":
     
     parser = argparse.ArgumentParser()
@@ -59,11 +58,13 @@ if __name__ == "__main__":
     testReadNum = args.testNum
     testcompareNum = args.compareNum
     filename = "piTestRecord" + str(testReadNum) + ".csv"
-    fullFileName = "./rpidata/" + filename
+    fullFileName = "./CS6604Project/rpidata/" + filename
     processFileName = "piTestRecord"+ str(testReadNum) + "pl.csv"
-    fullProcessName = "./rpidata/" + processFileName
+    fullProcessName = "./CS6604Project/rpidata/" + processFileName
     compfilename = "piTestRecord" + str(testcompareNum) + ".csv"
-    compFile= "./rpidata/" + compfilename
+    compFile= "./CS6604Project/rpidata/" + compfilename
+    cprocessFileName = "piTestRecord"+ str(testcompareNum) + "pl.csv"
+    fullcprocessFileName = "./CS6604Project/rpidata/" + cprocessFileName
     compareTrim = args.compareTrim
     testTrim = args.testTrim
 
@@ -129,12 +130,14 @@ if __name__ == "__main__":
         plt.locator_params(axis='x', nbins=10)
         fig, axs = plt.subplots(3,sharex=True)
         fig.suptitle(name)
-        axs[0].plot(rpiRead.sampleNum, rpiRead.cpuTemp,'tab:blue')
+        axs[0].plot(rpiRead.sampleNum, rpiRead.cpuTemp,'tab:blue',label="")
         axs[0].plot(rpiCompare.sampleNum, rpiCompare.cpuTemp,'tab:red')
         axs[1].plot(rpiRead.sampleNum, rpiRead.cpuLoad, 'tab:blue')
         axs[1].plot(rpiCompare.sampleNum, rpiCompare.cpuLoad, 'tab:red')
-        axs[2].plot(rpiRead.sampleNum, rpiRead.memPerc, 'tab:blue')
-        axs[2].plot(rpiCompare.sampleNum, rpiCompare.memPerc, 'tab:red')
+        axs[2].plot(rpiRead.sampleNum, rpiRead.memPerc, 'tab:blue',label="No Offloading")
+        axs[2].plot(rpiCompare.sampleNum, rpiCompare.memPerc, 'tab:red', label="Offloading")
+        axs[2].legend(loc='center right')
+        axs[2].get_yaxis().set_major_formatter(plt.FuncFormatter(lambda x, p: format(int(x))))
 
         for index,ax in enumerate(axs.flat):
             if index == 2:
@@ -158,10 +161,13 @@ if __name__ == "__main__":
         fig.suptitle(name)
         axs[0].plot(rpiRead.sampleNum[0:minsamples], rpiRead.cpuTemp[0:minsamples], 'tab:blue')
         axs[0].plot(rpiCompare.sampleNum[0:minsamples], rpiCompare.cpuTemp[0:minsamples], 'tab:red')
+
         axs[1].plot(rpiRead.sampleNum[0:minsamples], rpiRead.cpuLoad[0:minsamples], 'tab:blue')
         axs[1].plot(rpiCompare.sampleNum[0:minsamples], rpiCompare.cpuLoad[0:minsamples], 'tab:red')
-        axs[2].plot(rpiRead.sampleNum[0:minsamples], rpiRead.memPerc[0:minsamples], 'tab:blue')
-        axs[2].plot(rpiCompare.sampleNum[0:minsamples], rpiCompare.memPerc[0:minsamples], 'tab:red')
+        axs[2].plot(rpiRead.sampleNum[0:minsamples], rpiRead.memPerc[0:minsamples], 'tab:blue',label="No Offloading")
+        axs[2].plot(rpiCompare.sampleNum[0:minsamples], rpiCompare.memPerc[0:minsamples], 'tab:red', label="Offloading")
+        axs[2].legend(loc='center right')
+        axs[2].get_yaxis().set_major_formatter(plt.FuncFormatter(lambda x, p: format(int(x))))
 
         for index, ax in enumerate(axs.flat):
             if index == 2:
@@ -188,12 +194,19 @@ if __name__ == "__main__":
 
     # Read number of processes in process log and how often each process is run
     processArray = []
+    cprocessArray = []
 
     with open(fullProcessName, newline='') as csvfile:
         csv_reader = csv.reader(csvfile)
         next(csv_reader) # skip header
         for row in csv_reader:
             processArray.append(row)
+
+    with open(fullcprocessFileName, newline='') as xcsvfile:
+        csv_reader = csv.reader(xcsvfile)
+        next(csv_reader) # skip header
+        for row in csv_reader:
+            cprocessArray.append(row)
 
     # Plot total number of processes for each sample on bar graph
     xTotalList = []
@@ -203,15 +216,40 @@ if __name__ == "__main__":
         yTotalList.append(len(processArray[i]))
         xTotalList.append(i+1)
 
-    totalFig = plt.figure()
-    totalAx = totalFig.add_subplot(111)
-    totalAx.bar(xTotalList, yTotalList)
-    totalAx.set_xlabel("Sample Number")
-    totalAx.set_ylabel("Total Number of Processes")
-    totalAx.set_title("Bar Graph of Total System Processes")
-    totalAx.set_ylim(min(yTotalList) - 10, max(yTotalList) + 10)
+    cxTotalList = []
+    cyTotalList = []
 
-    plt.savefig("./rpidata/totalProcesses" + str(testReadNum) + ".png")
+    for i in range(len(cprocessArray)):
+        cyTotalList.append(len(cprocessArray[i]))
+        cxTotalList.append(i+1)
+
+    # Do trimming
+
+    if len(cxTotalList) < len(xTotalList):
+        xTotalList = xTotalList[0:len(cxTotalList)-1]
+        yTotalList = yTotalList[0:len(cyTotalList) - 1]
+    else:
+        cxTotalList = cxTotalList[0:len(xTotalList)-1]
+        cyTotalList = cyTotalList[0:len(yTotalList) - 1]
+
+
+    totalFig = plt.figure()
+    totalAx = totalFig.add_subplot(211)
+    totalAx.bar(xTotalList, yTotalList,label="No Offloading")
+    totalAx.set_ylabel("Total # Processes")
+    totalAx.set_title("Comparison of Total System Processes")
+    totalAx.set_ylim(min(yTotalList) - 10, max(yTotalList) + 10)
+    totalAx.legend(loc='best')
+
+    ctotalAx = totalFig.add_subplot(212)
+    ctotalAx.bar(cxTotalList, cyTotalList,color='r',label="Offloading")
+    ctotalAx.set_xlabel("Sample Number")
+    ctotalAx.set_ylabel("Total # Processes")
+    ctotalAx.set_ylim(min(cyTotalList) - 10, max(cyTotalList) + 10)
+    ctotalAx.legend(loc='best')
+
+    plt.show()
+    plt.savefig("./CS6604Project/rpidata/totalProcesses" + str(testReadNum) + ".png")
 
     # Plot number of occurances of each system process
     longProcessList = []
@@ -256,7 +294,7 @@ if __name__ == "__main__":
     occurAx.set_xlabel("Occurances")
     occurAx.set_title("Plot of System Occurances")
 
-    plt.savefig("./rpidata/totalOccurances" + str(testReadNum) + ".png")
+    plt.savefig("./CS6604Project/rpidata/totalOccurances" + str(testReadNum) + ".png")
 
     # plt.show()
 
